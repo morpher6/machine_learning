@@ -56,7 +56,7 @@ na_count <- data.frame(na_count)
 na_count
 ```
 
-```{r}
+```{r, echo=TRUE}
 # only keep columns with at least 50% non-blanks
 # http://stackoverflow.com/questions/15968494/how-to-delete-columns-with-na-in-r?answertab=votes#tab-top
 pml_train_clean <- pml_train[, colSums(is.na(pml_train)) < nrow(pml_train) * 0.5]

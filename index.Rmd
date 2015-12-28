@@ -1,0 +1,103 @@
+---
+title: "Practical Machine Learning - course project"
+author: "Peter Kuzma"
+date: "28. december 2015"
+output: html_document
+---
+
+## Synopsis
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:
+
+- exactly according to the specification (Class A), 
+
+- throwing the elbows to the front (Class B), 
+
+- lifting the dumbbell only halfway (Class C), 
+
+- lowering the dumbbell only halfway (Class D) and 
+
+- throwing the hips to the front (Class E).
+
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. Participants were supervised by an experienced weight lifter to make sure the execution complied to the manner they were supposed to simulate.
+
+## Executive Summary
+
+For this course project our task was to build a prediction model how participants did the exercise. Training data was downloaded from   [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) . Test data was downloaded from [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv) .
+
+I our model we used 57 of 160 variables. The rest were removed because of missing values or variable could affect our prediction model.
+Our final model was built using LDA (Linear Discriminant Analysis), resulting in nearly 86% accuracy. Meaning our *out of sample error* was 14%.
+
+## Exploratory Data Analysis
+
+```{r,echo = FALSE}
+options(warn=-1)
+```
+
+```{r}
+library(caret);library(ggplot2);
+
+# load the data
+pml_train <- read.table("../../Coursera/machine_learning/pml-training.csv",sep = ",", header=TRUE, na.strings=c("NA", "-", "?","","#DIV/0!"), stringsAsFactors=F)
+pml_test <- read.table("../../Coursera/machine_learning/pml-testing.csv",sep = ",", header=TRUE, na.strings=c("NA", "-", "?","","#DIV/0!"), stringsAsFactors=F)
+```
+
+First we inspect the data and clean it up.
+
+```{r}
+# check the data
+summary(pml_train)
+
+# only keep columns with at least 50% non-blanks
+# http://stackoverflow.com/questions/15968494/how-to-delete-columns-with-na-in-r?answertab=votes#tab-top
+pml_train_clean <- pml_train[, colSums(is.na(pml_train)) < nrow(pml_train) * 0.5]
+pml_test_clean <- pml_test[, colSums(is.na(pml_test)) < nrow(pml_test) * 0.5]
+
+# remove columns that could affect  our prediction model
+pml_train_clean <- subset(pml_train_clean, select=-c(new_window, num_window))
+pml_test_clean <- subset(pml_test_clean, select=-c(new_window, num_window))
+
+pml_train_clean <- pml_train_clean[,-1]
+pml_test_clean <- pml_test_clean[,-1]
+
+# check we got in both the same fields - except for classe everything is in order 
+dim(pml_train_clean); dim(pml_test_clean)
+str(pml_train_clean); str(pml_test_clean)
+```
+
+## Building our prediction model
+
+```{r}
+# for reproducability
+set.seed(8232)
+```
+
+We have a medium/large training set and validation set. Therefor we can easily split training set into training and testing set. Taking into account we have validation set we choose to split it 80:20.
+
+```{r}
+inTrain <- createDataPartition(y=pml_train_clean$classe,p=0.80, list=FALSE)
+training <- pml_train_clean[inTrain,]
+testing <- pml_train_clean[-inTrain,]
+
+# let's check how well did our participants do the practice according to our trainning data 
+table(training$user_name,training$classe)
+table(training$classe)
+```
+
+Now it is time to build our prediction model. We chose to do it by LDA method.
+
+```{r}
+#LDA
+modlda <- train(classe ~ .,data=training,method="lda")
+plda <- predict(modlda,testing)
+table(plda)
+confusionMatrix(testing$classe,plda)
+```
+
+Our model has 85.7% accuracy. This means our out of sample error is 14.3%. 
+
+```{r}
+pred <- predict(modlda,pml_test_clean)
+table(pred)
+pred
+```

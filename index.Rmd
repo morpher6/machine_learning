@@ -44,25 +44,31 @@ pml_test <- read.table("../../Coursera/machine_learning/pml-testing.csv",sep = "
 
 First we inspect the data and clean it up.
 
-```{r}
+```{r, results = "hide"}
 # check the data
 summary(pml_train)
+```
 
+```{r, results = "hide"}
+# let's do the list of columns with missing values
+na_count <- sapply(pml_train, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+na_count
+```
+
+```{r}
 # only keep columns with at least 50% non-blanks
 # http://stackoverflow.com/questions/15968494/how-to-delete-columns-with-na-in-r?answertab=votes#tab-top
 pml_train_clean <- pml_train[, colSums(is.na(pml_train)) < nrow(pml_train) * 0.5]
 pml_test_clean <- pml_test[, colSums(is.na(pml_test)) < nrow(pml_test) * 0.5]
 
-# remove columns that could affect  our prediction model
+# remove columns that could affect our prediction model
 pml_train_clean <- subset(pml_train_clean, select=-c(new_window, num_window))
 pml_test_clean <- subset(pml_test_clean, select=-c(new_window, num_window))
-
-pml_train_clean <- pml_train_clean[,-1]
-pml_test_clean <- pml_test_clean[,-1]
+pml_train_clean <- pml_train_clean[,-1]; pml_test_clean <- pml_test_clean[,-1]
 
 # check we got in both the same fields - except for classe everything is in order 
 dim(pml_train_clean); dim(pml_test_clean)
-str(pml_train_clean); str(pml_test_clean)
 ```
 
 ## Building our prediction model
@@ -82,6 +88,8 @@ testing <- pml_train_clean[-inTrain,]
 # let's check how well did our participants do the practice according to our trainning data 
 table(training$user_name,training$classe)
 table(training$classe)
+
+qplot(user_name,colour=classe,data=training, main = "Participant's performance in five different fashions", xlab = "Participants", ylab = "Counts" )
 ```
 
 Now it is time to build our prediction model. We chose to do it by LDA method.
@@ -96,8 +104,12 @@ confusionMatrix(testing$classe,plda)
 
 Our model has 85.7% accuracy. This means our out of sample error is 14.3%. 
 
+Now we use our prediction model on validation set.
+
 ```{r}
 pred <- predict(modlda,pml_test_clean)
 table(pred)
 pred
 ```
+
+The results are used for the second part of the assignment - the programming portion of the Course Project. 
